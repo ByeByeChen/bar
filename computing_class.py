@@ -3,6 +3,7 @@
 #开发时间：2020/9/21 12:42
 #文件名称：computing_class.py
 import numpy as np
+import cupy as cp
 import black_box as blb
 import math
 import cmath
@@ -10,29 +11,29 @@ import collections
 
 def get_W(wide_size,height_size,channel_nums):          #产生随机W   224*224*3
 
-    return np.random.rand(wide_size,height_size,channel_nums)
+    return cp.random.rand(wide_size,height_size,channel_nums)
 
 def get_U(wide_size,height_size,):                  # 产生随机U 向量   224*224
 
-        u_list = np.random.rand(wide_size,height_size)
+        u_list = cp.random.rand(wide_size,height_size)
         #print(u_list)
-        sum =np.sum(u_list**2)
-        sum_sqrt = sum ** 0.5
-        u_list = u_list/sum_sqrt
+        sum =cp.sum(u_list**2)
+        sum_sqrt = cp.sqrt(sum)
+        u_list = cp.divide(u_list, sum_sqrt)
         #print(u_list)
-        u_list = np.expand_dims(u_list, axis=2)  # 扩维度
-        u_list = np.concatenate((u_list, u_list, u_list), axis=-1)
+        u_list = cp.expand_dims(u_list, axis=2)  # 扩维度
+        u_list = cp.concatenate((u_list, u_list, u_list), axis=-1)
 
         return u_list
 
 def get_M():                                    #产生M 向量    224*224*3
 
-        zero = np.ones((200,200))        #1值   200*200
-        one = np.ones((224,224))         #1值   224*224
-        zero=np.pad(zero,12)             #1值  200*200  填充到  224*224
+        zero = cp.ones((200,200))        #1值   200*200
+        one = cp.ones((224,224))         #1值   224*224
+        zero=cp.pad(zero,12)             #1值  200*200  填充到  224*224
         m=one-zero                       # 相减
-        m = np.expand_dims(m, axis=2)    #扩维度
-        m = np.concatenate((m, m, m), axis=-1)   #变成 224*224*3
+        m = cp.expand_dims(m, axis=2)    #扩维度
+        m = cp.concatenate((m, m, m), axis=-1)   #变成 224*224*3
         #print(np.shape(m))
         #print(m[:,14,1])
         return m
@@ -40,8 +41,8 @@ def get_M():                                    #产生M 向量    224*224*3
 def get_P(W,M):                        #产生P 向量
         #W=get_W(224,224,3)
         #M=get_M()
-        p=np.multiply(W,M)
-        p = np.tanh(p)
+        p=cp.multiply(W,M)
+        p = cp.tanh(p)
         #print(np.shape(p))
         #print(p)
         return p * 255
@@ -49,14 +50,14 @@ def get_P(W,M):                        #产生P 向量
 def get_X_P(x,p):
         #p = get_P(w,m)
         #x_p = np.add(x,p)
-        x_p = x + p
+        x_p = cp.add(x, p)
         return x_p
 
 def get_X_P_list(x_list,p):
         #p = get_P(w,m)
         x_p_list=[]
         for x in x_list:
-                x_p = np.add(x,p)
+                x_p = cp.add(x,p)
                 x_p_list.append(x_p)
         return x_p_list
 
@@ -66,6 +67,7 @@ def get_X_P_list(x_list,p):
 # 更一般地说，如果源标签S⊂[K]的子集映射到目标标签j∈[K’]，那么hj（F（X））= 1/(|𝑠|) ∑▒〖𝑠"∈" 𝑆〗  Fs(X），其中| S |是集基数。
 
 def function_h(img,label,top3_dict,top_num):   # h函数
+        img = cp.asnumpy(img)
         preds = blb.prediction_by_narry(img)    #调用黑盒检测接口
         indexs = top3_dict[label]            #取出对应label所对应的index列表
         sum = 0
@@ -78,6 +80,7 @@ def function_h(img,label,top3_dict,top_num):   # h函数
 
 def function_h2(img,labels,top3_dict,top_num):   # h函数
         avg_list = []
+        img = cp.asnumpy(img)
         preds = blb.prediction_by_narry(img) #调用黑盒检测接口
         for i in labels:
                 indexs = top3_dict[i]            #取出对应label所对应的index列表
@@ -140,13 +143,13 @@ def function_g_avg(x_list,x_p_list1,W,M,labels,labels_one_hot,batch_size,num_cla
         b=224
         B = 1 / b
         f1 = function_f(x_list,x_p_list1,labels,labels_one_hot,batch_size,num_classes,top3_dict)
-        g_sum = np.zeros((224,224,3))
+        g_sum = cp.zeros((224,224,3))
         for j in range(q):
                 x_p_list2=[]
                 uj=get_U(224,224)
                 #print(uj)
                 #print("----------uj----------")
-                W2=W+uj*B
+                W2=cp.add(W, cp.multiply(uj, B))
                 #print(W)
                 #print("---------W----------")
                 p=get_P(W2,M)
@@ -158,8 +161,8 @@ def function_g_avg(x_list,x_p_list1,W,M,labels,labels_one_hot,batch_size,num_cla
                 #print(x_p_list2)
                 f2 = function_f(x_list,x_p_list2,labels,labels_one_hot,batch_size,num_classes,top3_dict)
                 print("~~~~~~~~~~~~~~~~~~~f1损失:",f1,",f2损失:",f2,"~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                g = b*((f2-f1)/B)*uj
-                g = np.array(g)
+                g = cp.multiply(b*((f2-f1)/B), uj)
+                g = cp.array(g)
                 #print(g)
                 #print("-------G-----")
                 g_sum+=g
@@ -170,7 +173,7 @@ def function_g_avg2(x_list,x_p_list1,W,M,labels,labels_one_hot,batch_size,num_cl
         b=224
         B = 1 / b
         f1 = function_f(x_list,x_p_list1,labels,labels_one_hot,batch_size,num_classes,top3_dict)
-        g_sum = np.zeros((224,224,3))
+        g_sum = cp.zeros((224,224,3))
         for j in range(q):
                 x_p_list2=[]
                 #uj=get_U(224,224)
@@ -183,7 +186,7 @@ def function_g_avg2(x_list,x_p_list1,W,M,labels,labels_one_hot,batch_size,num_cl
                 f2 = function_f(x_list,x_p_list2,labels,labels_one_hot,batch_size,num_classes,top3_dict)
                 print("~~~~~~~~~~~~~~~~~~~f1损失:",f1,",f2损失:",f2,"~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 g = b*((f2-f1)/B)*uj_list[j]
-                g = np.array(g)
+                g = cp.array(g)
                 g_sum+=g
         return g_sum/q
 

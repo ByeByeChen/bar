@@ -6,6 +6,7 @@
 import tensorflow as tf
 import label_list_tools as cs
 import numpy as np
+import cupy as cp
 import computing_class as cc
 import static_top as stt
 from keras.preprocessing import image
@@ -43,12 +44,13 @@ def load_train(train_path, train_label, img_size, classes):
         img= image.load_img(train_path[i], target_size=(img_size, img_size))
         x = image.img_to_array(img)
         x = np.pad(x, ((12,12), (12,12), (0,0)), 'constant')
+        x = cp.asarray(x)
         images.append(x)
         label = np.zeros(classes)
         label[train_label[i]] = 1.0
         labels_one_hot.append(label)
 
-    images = np.array(images)
+    images = cp.array(images)
     labels_one_hot = np.array(labels_one_hot)
 
     return images, train_label,labels_one_hot
@@ -57,7 +59,7 @@ def training_pro():
     times = 0
     image_path, image_labels = cs.loadCSVfile(train_path)
     top3_dict = stt.get_top3_mapping()
-    at = 0.0000001
+    at = 0.01
     batch_index = []
     uj_list=[]
     W = cc.get_W(224,224,3)
@@ -84,7 +86,8 @@ def training_pro():
             P = cc.get_P(W, M)
             x_p_list = cc.get_X_P_list(x_list,P)
             g_avg = cc.function_g_avg(x_list,x_p_list,W,M,labels,labels_one_hot,batch_size,num_classes,top3_dict,q)
-            W = W-at*g_avg
+            W = cp.subtract(W, cp.multiply(at, g_avg))
+            #W = cp.subtract(W, at*g_avg)
             print("------------------------------------")
             #print(g_avg)
             print("------------------------------------")
