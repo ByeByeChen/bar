@@ -3,45 +3,29 @@ import black_box as blb
 from keras.preprocessing import image
 import computing_class as cc
 import scipy.misc
-import _thread
-import time
-import os
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3"
-test_label_path = "/home/ailab/yxy/script/create_label/val.label"
-weights_path = "weights/w/10_weight.npy"
+test_label_path = "./label/test_mask_label.list"
+weights_path = "weights/w/600_weight.npy"
 top3_dict = {}
 labels = []
 W = []
-num_classes = 102
 
 def main():
     loadDict()
     loadModel()
-    validateByLabelList(test_label_path)
-    #label, score = validate("test.jpg")
-    #test_thread()
+    #validateByLabelList(test_label_path)
+    label, score = validate("test.jpg")
 
-def pr():
-    print(1111)
 
 def test_thread():
     while True:
-        try:
-            _thread.start_new_thread(validate("test,jpg"))
-            #_thread.start_new_thread(pr())
-        except:
-            print("Error:无法启动线程")
-        time.sleep(5)
+	validate("test.jpg")
 
 def loadDict():
     global labels
     global top3_dict
-    global num_classes
-    labels = list(range(0,102))
-    print(labels)
+    labels = [0,1]
     top3_dict = np.load("top3_dict.npy", allow_pickle=True).item()
-    print(top3_dict)
     return
 
 def loadModel():

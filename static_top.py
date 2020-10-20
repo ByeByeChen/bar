@@ -10,6 +10,8 @@ import black_box as blb
 
 def get_top3_mapping():     #k——to-one 映射
 
+    top3_dict = np.load("top3_dict.npy", allow_pickle=True).item()
+    return top3_dict
     csv_path = './file_label.csv'   #csv文件路径
     top3_dict={}                    #存储每个label对应的top3映射
     image_path, labels = cs.loadCSVfile(csv_path) #读取csv文件，获取文件名和labels

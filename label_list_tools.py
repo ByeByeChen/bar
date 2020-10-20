@@ -15,7 +15,7 @@ def create_csv():
     #测试文件夹下读取所有图片和label
     filefold_path='/home/ailab/yxy/dataset/dog_vs_cat/m_train/'
     rows=[]
-    f = open("./label/bald_label.list")
+    f = open("/home/ailab/workspace/yxy/script/create_label/train.label")
     while True:
         line = f.readline()
         if not line:

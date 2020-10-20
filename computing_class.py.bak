@@ -86,11 +86,11 @@ def function_h2(img,labels,top3_dict,top_num):   # h函数
         preds = blb.prediction_by_narry(img) #调用黑盒检测接口
         global black_box_total_time
         black_box_total_time += (datetime.now() - a).microseconds/1000000
-        for i in range(labels):
+        for i in labels:
                 indexs = top3_dict[i]            #取出对应label所对应的index列表
                 sum = 0
-                for j in indexs:
-                        sum += preds[0][j]            #算总分
+                for i in indexs:
+                        sum += preds[0][i]            #算总分
                         #print(preds[0][i])
                 #print("*****************")
                 avg = sum/len(indexs)     #平均分
@@ -118,14 +118,13 @@ def function_f(x_list,x_p_list,labels,labels_one_hot,batch_size,num_classes,top3
         for i in range(len(x_list)):
                 xl = x_list[i].copy()
                 xpl = x_p_list[i].copy()
-                avg_list_x = function_h2(xl,num_classes,top3_dict,3)
-                avg_list_x_p = function_h2(xpl,num_classes,top3_dict,3)
+                avg_list_x = function_h2(xl,[0,1],top3_dict,3)
+                avg_list_x_p = function_h2(xpl,[0,1],top3_dict,3)
                 for j in range(num_classes):
                         yij = labels_one_hot[i][j]
                         if yij == 0:
                             continue
                         w = 1/label_num[j]
-                        #print(j,"\t",len(avg_list_x))
                         e = (1-avg_list_x[j])**2
                         #loghj = np.log10(avg_list_x_p[j])
                         loghj = math.log(avg_list_x_p[j])
